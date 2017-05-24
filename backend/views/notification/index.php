@@ -1,0 +1,87 @@
+<?php
+
+use yii\helpers\Html;
+use yii\grid\GridView;
+use yii\widgets\Pjax;
+use yii\helpers\ArrayHelper;
+use common\models\NotificationType;
+use common\models\Notification;
+
+/* @var $this yii\web\View */
+/* @var $searchModel common\models\search\NotificationSearch */
+/* @var $dataProvider yii\data\ActiveDataProvider */
+
+$this->title = Yii::t('notification', 'Notifications');
+$this->params['breadcrumbs'][] = $this->title;
+?>
+<div class="notification-index">
+
+    <h1><?= Html::encode($this->title) ?></h1>
+    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
+
+    <p>
+        <?= Html::a(Yii::t('common', 'Create'), ['create'], ['class' => 'btn btn-success']) ?>
+    </p>
+    <?php Pjax::begin(); ?>    <?= GridView::widget([
+        'dataProvider' => $dataProvider,
+        'filterModel' => $searchModel,
+        'columns' => [
+            'status' => [
+                'attribute' => 'status',
+                'filter' => [
+                    Notification::STATUS_WAITING => Yii::t('common', 'Waiting'),
+                    Notification::STATUS_APPROVED => Yii::t('common', 'Approved'),
+                    Notification::STATUS_DECLINE => Yii::t('common', 'Declined')
+                ],
+                'contentOptions' => function ($data) {
+                    return ['class' => $data->statusClass];
+                },
+                'value' => function ($data) {
+                    return $data->statusText;
+                }
+            ],
+            ['class' => 'yii\grid\SerialColumn'],
+            'type_id' => [
+                'attribute' => 'type_id',
+                'filter' => ArrayHelper::map(NotificationType::find()->asArray()->all(), 'id', 'name'),
+                'value' => function ($data) {
+                    return $data->type->name;
+                }
+            ],
+            'user_id' => [
+                    'attribute' => 'user_id',
+                    'value' => function($data){
+                        return $data->user->employee->fullName;
+                    }
+            ],
+            'start_datetime:date',
+            'end_datetime:date',
+            'description' => [
+                'attribute' => 'description',
+                'value' => function($data){
+                    if(!is_null($data->description)){
+                        return substr($data->description,0,50).'...';
+                    }
+                }
+            ],
+            [
+                //'header' => Yii::t('common', 'Approved'),
+                'class' => 'yii\grid\ActionColumn',
+                'buttons' => [
+                    'approve' => function ($url, $model, $key) {
+                        if (($model->status == Notification::STATUS_WAITING)) {
+                            return Html::a('<i class=\'fa-thumbs-o-up\'></i>', ['change-status', 'id' => $model->id, 'status' => Notification::STATUS_APPROVED]);
+                        }
+                    },
+                    'decline' => function ($url, $model, $key) {
+                        if (($model->status == Notification::STATUS_WAITING)) {
+                            return Html::a('<i class=\'fa-thumbs-o-down\'></i>', ['change-status', 'id' => $model->id, 'status' => Notification::STATUS_DECLINE]);
+                        }
+                    },
+                ],
+                'template' => '{approve} {decline}',
+            ],
+            ['class' => 'yii\grid\ActionColumn']
+        ],
+    ]); ?>
+    <?php Pjax::end(); ?></div>
